@@ -2,6 +2,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_stdinc.h>
 #include <iostream>
 using namespace std;
 #define WINDOW_WIDTH 468
@@ -11,7 +12,7 @@ int dx = 2;
 int dy = 1;
 
 typedef struct {
-  int r, g, b, a;
+  Uint8 r, g, b, a;
 } RectColor;
 
 void update_color(RectColor &color) {
