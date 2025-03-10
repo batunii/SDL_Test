@@ -13,9 +13,9 @@ using namespace std;
 #ifndef LOGGING
 #define LOG(x, y)
 #endif // !LOGGING
-#define WINDOW_WIDTH 600
-#define WINDOW_HEIGHT 600
-#define RECT_SIZE 100
+#define WINDOW_WIDTH 550
+#define WINDOW_HEIGHT 550
+#define RECT_SIZE 50
 int block_num =
     (WINDOW_HEIGHT * WINDOW_WIDTH) / ((RECT_SIZE + 2) * (RECT_SIZE + 2));
 int dx = 2;
@@ -44,13 +44,13 @@ void make_board(SDL_Renderer *renderer) {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   for (int i = 0; i < (block_num * RECT_SIZE) / WINDOW_WIDTH; i++) {
     for (int j = 0; j < (block_num * RECT_SIZE) / WINDOW_HEIGHT; j++) {
-      SDL_Rect new_rect = {.x = 5 + j * (RECT_SIZE + 10),
-                           .y = 5 + i * (RECT_SIZE + 10),
+      SDL_Rect new_rect = {.x = 5 + j * (RECT_SIZE + 5),
+                           .y = 5 + i * (RECT_SIZE + 5),
                            .w = RECT_SIZE,
                            .h = RECT_SIZE};
       LOG(new_rect.x, new_rect.y);
       SDL_RenderDrawRect(renderer, &new_rect);
-      SDL_Delay(20);
+      SDL_Delay(200);
       SDL_RenderPresent(renderer);
     }
   }
