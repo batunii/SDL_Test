@@ -4,6 +4,8 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_timer.h>
+#include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -19,7 +21,7 @@ using namespace std;
 #define RECT_SIZE 50
 constexpr int block_num =
     (WINDOW_HEIGHT * WINDOW_WIDTH) / ((RECT_SIZE + 2) * (RECT_SIZE + 2));
-vector<SDL_Rect> sdl_rects;
+vector<vector<SDL_Rect *>> sdl_rects;
 int dx = 2;
 int dy = 1;
 
@@ -28,30 +30,80 @@ typedef struct {
 } RectColor;
 
 void make_board(SDL_Renderer *renderer) {
+  printf("printing %d blocks\n", block_num);
   SDL_RenderClear(renderer);
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  for (int i = 0; i < (block_num * RECT_SIZE) / WINDOW_WIDTH; i++) {
-    for (int j = 0; j < (block_num * RECT_SIZE) / WINDOW_HEIGHT; j++) {
-      SDL_Rect new_rect = {.x = 5 + j * (RECT_SIZE + 5),
-                           .y = 5 + i * (RECT_SIZE + 5),
-                           .w = RECT_SIZE,
-                           .h = RECT_SIZE};
+  for (int i = 0; i < (block_num * (RECT_SIZE + 2)) / WINDOW_WIDTH; i++) {
+    vector<SDL_Rect *> rows;
+    for (int j = 0; j < (block_num * (RECT_SIZE + 2)) / WINDOW_HEIGHT; j++) {
+      SDL_Rect *new_rect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
+      new_rect->x = 5 + j * (RECT_SIZE + 5);
+      new_rect->y = 5 + i * (RECT_SIZE + 5);
+      new_rect->w = RECT_SIZE;
+      new_rect->h = RECT_SIZE;
       LOG(new_rect.x, new_rect.y);
-      sdl_rects.push_back(new_rect);
-      SDL_RenderDrawRect(renderer, &new_rect);
+      rows.push_back(new_rect);
+      SDL_RenderDrawRect(renderer, new_rect);
     }
+    sdl_rects.push_back(rows);
   }
   SDL_RenderPresent(renderer);
 }
 void update_board(pair<int, int> &&coords, SDL_Renderer *renderer) {
-  for (SDL_Rect rects : sdl_rects) {
-    if ((coords.first > rects.x && coords.second > rects.y) &&
-        (coords.first < rects.x + RECT_SIZE &&
-         coords.second < rects.y + RECT_SIZE)) {
-      SDL_RenderFillRect(renderer, &rects);
+  for (vector<SDL_Rect *> rows : sdl_rects)
+    for (SDL_Rect *rects : rows) {
+      if ((coords.first > rects->x && coords.second > rects->y) &&
+          (coords.first < rects->x + RECT_SIZE &&
+           coords.second < rects->y + RECT_SIZE)) {
+        printf("Found block!\n");
+        break;
+        // SDL_RenderFillRect(renderer, rects);
+      }
     }
+  // SDL_RenderPresent(renderer);
+}
+
+void update_board_binary(const pair<int, int> &&coords,
+                         SDL_Renderer *renderer) {
+  int start_x = 0;
+  int end_x = sdl_rects[0].size();
+  int x_mid = 0;
+  int x_row = 0;
+  const vector<SDL_Rect *> &rows = sdl_rects[0];
+  while (start_x < end_x) {
+    x_mid = (start_x + end_x) / 2;
+    int x_0 = rows.at(x_mid)->x;
+    int x_1 = x_0 + RECT_SIZE;
+    if (coords.first > x_0 && coords.first < x_1) {
+      x_row = x_mid;
+      break;
+    }
+    if (coords.first < x_0 && coords.first < x_1)
+      end_x = x_mid;
+    if (coords.first > x_0 && coords.first > x_1)
+      start_x = x_mid + 1;
   }
-  SDL_RenderPresent(renderer);
+
+  int start_y = 0;
+  int end_y = sdl_rects.size();
+  int mid_y = 0;
+  int col_y = 0;
+
+  while (start_y < end_y) {
+    mid_y = (start_y + end_y) / 2;
+    int y0 = sdl_rects[mid_y][0]->y;
+    int y1 = y0 + RECT_SIZE;
+    if (coords.second > y0 && coords.second < y1) {
+      col_y = mid_y;
+      break;
+    }
+    if (coords.second > y0 && coords.second > y1)
+      start_y = mid_y + 1;
+    if (coords.second < y0 && coords.second < y1)
+      end_y = mid_y;
+  }
+
+  printf("Found block at %d, %d \n", x_row, col_y);
 }
 
 void update_color(RectColor &color) {
@@ -117,7 +169,21 @@ int main(int argc, char **argv) {
         int x = event.button.x;
         int y = event.button.y;
         cout << "Clicked at : " << x << "," << y << endl;
+        auto start1 = chrono::high_resolution_clock::now();
         update_board(make_pair(x, y), renderer);
+        auto end1 = chrono::high_resolution_clock::now();
+        auto duration1 =
+            chrono::duration_cast<chrono::microseconds>(end1 - start1);
+        cout << "It took " << duration1.count() << " seconds for linear"
+             << endl;
+
+        auto start2 = chrono::high_resolution_clock::now();
+        update_board_binary(make_pair(x, y), renderer);
+        auto end2 = chrono::high_resolution_clock::now();
+        auto duration2 =
+            chrono::duration_cast<chrono::microseconds>(end2 - start2);
+        cout << "It took " << duration2.count() << " seconds for binary"
+             << endl;
         break;
       }
       default:
