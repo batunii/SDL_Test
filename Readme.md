@@ -8,12 +8,15 @@ We have gone beyond Floating box, we are now implementing hard logics in Blocks.
 - Implemented Binary Search and got some crazy results. 
 
 ### Result 1
+
 ``` shell
 Clicked at : 32,34
 Found block!
 It took 22 seconds for linear
 Found block at 0, 0 
-It took 40 seconds for binary ```
+It took 40 seconds for binary 
+```
+
 
 ### Result 2
 ``` shell
