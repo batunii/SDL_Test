@@ -4,7 +4,6 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_timer.h>
-#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <utility>
@@ -24,6 +23,8 @@ constexpr int block_num =
 vector<vector<SDL_Rect *>> sdl_rects;
 int dx = 2;
 int dy = 1;
+bool src_done = false;
+bool dest_done = false;
 
 typedef struct {
   Uint8 r, g, b, a;
@@ -49,39 +50,26 @@ void make_board(SDL_Renderer *renderer) {
   }
   SDL_RenderPresent(renderer);
 }
-void update_board(pair<int, int> &&coords, SDL_Renderer *renderer) {
-  for (vector<SDL_Rect *> rows : sdl_rects)
-    for (SDL_Rect *rects : rows) {
-      if ((coords.first > rects->x && coords.second > rects->y) &&
-          (coords.first < rects->x + RECT_SIZE &&
-           coords.second < rects->y + RECT_SIZE)) {
-        printf("Found block!\n");
-        break;
-        // SDL_RenderFillRect(renderer, rects);
-      }
-    }
-  // SDL_RenderPresent(renderer);
-}
 
 void update_board_binary(const pair<int, int> &&coords,
                          SDL_Renderer *renderer) {
   int start_x = 0;
   int end_x = sdl_rects[0].size();
-  int x_mid = 0;
-  int x_row = 0;
+  int mid_x = 0;
+  int row_x = 0;
   const vector<SDL_Rect *> &rows = sdl_rects[0];
   while (start_x < end_x) {
-    x_mid = (start_x + end_x) / 2;
-    int x_0 = rows.at(x_mid)->x;
+    mid_x = (start_x + end_x) / 2;
+    int x_0 = rows.at(mid_x)->x;
     int x_1 = x_0 + RECT_SIZE;
     if (coords.first > x_0 && coords.first < x_1) {
-      x_row = x_mid;
+      row_x = mid_x;
       break;
     }
     if (coords.first < x_0 && coords.first < x_1)
-      end_x = x_mid;
+      end_x = mid_x;
     if (coords.first > x_0 && coords.first > x_1)
-      start_x = x_mid + 1;
+      start_x = mid_x + 1;
   }
 
   int start_y = 0;
@@ -103,7 +91,18 @@ void update_board_binary(const pair<int, int> &&coords,
       end_y = mid_y;
   }
 
-  printf("Found block at %d, %d \n", x_row, col_y);
+  printf("Found block at %d, %d \n", row_x, col_y);
+
+  if (!src_done) {
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+    SDL_RenderFillRect(renderer, sdl_rects[col_y][row_x]);
+    src_done = true;
+  } else if (!dest_done) {
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderFillRect(renderer, sdl_rects[col_y][row_x]);
+    dest_done = true;
+  }
+  SDL_RenderPresent(renderer);
 }
 
 void update_color(RectColor &color) {
@@ -169,21 +168,7 @@ int main(int argc, char **argv) {
         int x = event.button.x;
         int y = event.button.y;
         cout << "Clicked at : " << x << "," << y << endl;
-        auto start1 = chrono::high_resolution_clock::now();
-        update_board(make_pair(x, y), renderer);
-        auto end1 = chrono::high_resolution_clock::now();
-        auto duration1 =
-            chrono::duration_cast<chrono::microseconds>(end1 - start1);
-        cout << "It took " << duration1.count() << " seconds for linear"
-             << endl;
-
-        auto start2 = chrono::high_resolution_clock::now();
         update_board_binary(make_pair(x, y), renderer);
-        auto end2 = chrono::high_resolution_clock::now();
-        auto duration2 =
-            chrono::duration_cast<chrono::microseconds>(end2 - start2);
-        cout << "It took " << duration2.count() << " seconds for binary"
-             << endl;
         break;
       }
       default:
