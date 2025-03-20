@@ -21,14 +21,16 @@ using namespace std;
 constexpr int block_num =
     (WINDOW_HEIGHT * WINDOW_WIDTH) / ((RECT_SIZE + 2) * (RECT_SIZE + 2));
 vector<vector<SDL_Rect *>> sdl_rects;
-int dx = 2;
-int dy = 1;
 bool src_done = false;
 bool dest_done = false;
 
-typedef struct {
-  Uint8 r, g, b, a;
-} RectColor;
+void free_rects() {
+  for (vector<SDL_Rect *> rect_row : sdl_rects) {
+    for (SDL_Rect *rects : rect_row) {
+      free(rects);
+    }
+  }
+}
 
 void make_board(SDL_Renderer *renderer) {
   printf("printing %d blocks\n", block_num);
@@ -105,37 +107,6 @@ void update_board_binary(const pair<int, int> &&coords,
   SDL_RenderPresent(renderer);
 }
 
-void update_color(RectColor &color) {
-  color.r -= 10;
-  color.g += 10;
-  color.b += 5;
-}
-void update(SDL_Rect &rect, RectColor &color) {
-  if (rect.x + RECT_SIZE > WINDOW_WIDTH || rect.x < 0) {
-    dx *= -1;
-    update_color(color);
-  }
-  if (rect.y + RECT_SIZE > WINDOW_HEIGHT || rect.y < 0) {
-    dy *= -1;
-    update_color(color);
-  }
-  rect.x += dx;
-  rect.y += dy;
-}
-
-void move(SDL_Renderer *renderer, SDL_Rect &rect, RectColor &color) {
-
-  update(rect, color);
-  SDL_SetRenderDrawColor(renderer, 10, 10, 0, 255);
-  SDL_RenderFillRect(renderer, nullptr);
-  SDL_RenderClear(renderer);
-  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-  SDL_RenderFillRect(renderer, &rect);
-  SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-  SDL_RenderDrawRect(renderer, &rect);
-  SDL_RenderPresent(renderer);
-}
-
 int main(int argc, char **argv) {
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
     cout << "Error in creating SDL instance\n";
@@ -163,6 +134,8 @@ int main(int argc, char **argv) {
       switch (event.type) {
       case SDL_QUIT:
         close = true;
+				free_rects();
+
         break;
       case SDL_MOUSEBUTTONDOWN: {
         int x = event.button.x;
