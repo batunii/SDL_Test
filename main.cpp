@@ -1,11 +1,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_timer.h>
 #include <cstdlib>
 #include <iostream>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 using namespace std;
@@ -18,12 +20,16 @@ using namespace std;
 #define WINDOW_WIDTH 550
 #define WINDOW_HEIGHT 550
 #define RECT_SIZE 50
+
+struct PairHash {
+  size_t operator()(const pair<int, int> &p) const {
+    return p.first ^ p.second;
+  }
+};
 constexpr int block_num =
     (WINDOW_HEIGHT * WINDOW_WIDTH) / ((RECT_SIZE + 2) * (RECT_SIZE + 2));
 vector<vector<SDL_Rect *>> sdl_rects;
-bool src_done = false;
-bool dest_done = false;
-
+unordered_set<pair<int, int>, PairHash> selected_rects;
 void free_rects() {
   for (vector<SDL_Rect *> rect_row : sdl_rects) {
     for (SDL_Rect *rects : rect_row) {
@@ -95,16 +101,39 @@ void update_board_binary(const pair<int, int> &&coords,
 
   printf("Found block at %d, %d \n", row_x, col_y);
 
-  if (!src_done) {
-    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-    SDL_RenderFillRect(renderer, sdl_rects[col_y][row_x]);
-    src_done = true;
-  } else if (!dest_done) {
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    SDL_RenderFillRect(renderer, sdl_rects[col_y][row_x]);
-    dest_done = true;
-  }
+  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+  SDL_RenderFillRect(renderer, sdl_rects[col_y][row_x]);
   SDL_RenderPresent(renderer);
+  selected_rects.emplace(col_y, row_x);
+}
+
+int emod(int a, int b) { return (((a % b) + b) % b); }
+
+int calculate_neighbors(int y, int x) {
+  int total_neighs = 0;
+  int dir[] = {-1, 0, 1};
+
+  for (int dirx : dir) {
+    for (int diry : dir) {
+      int new_x = emod(x + dirx, WINDOW_WIDTH);
+      int new_y = emod(y + diry, WINDOW_HEIGHT);
+      if (selected_rects.find(make_pair(new_x, new_y)) !=
+          selected_rects.end()) {
+        printf("Found a selected neighbor close to %d, %d : %d, %d \n", x, y,
+               new_x, new_y);
+        ++total_neighs;
+      }
+    }
+  }
+  return total_neighs;
+}
+
+void calculate_next_gol() {
+  for (int y = 0; y < sdl_rects.size(); ++y) {
+    for (int x = 0; x < sdl_rects[y].size(); ++x) {
+      int neighbors = calculate_neighbors(y, x);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -134,7 +163,7 @@ int main(int argc, char **argv) {
       switch (event.type) {
       case SDL_QUIT:
         close = true;
-				free_rects();
+        free_rects();
 
         break;
       case SDL_MOUSEBUTTONDOWN: {
@@ -142,6 +171,11 @@ int main(int argc, char **argv) {
         int y = event.button.y;
         cout << "Clicked at : " << x << "," << y << endl;
         update_board_binary(make_pair(x, y), renderer);
+        break;
+      }
+      case SDL_KEYDOWN: {
+        if (event.key.keysym.sym == 32)
+          calculate_next_gol();
         break;
       }
       default:
