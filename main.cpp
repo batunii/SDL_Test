@@ -19,6 +19,15 @@ using namespace std;
 #define WINDOW_WIDTH 550
 #define WINDOW_HEIGHT 550
 #define RECT_SIZE 50
+
+int FRONT_BOARD[WINDOW_HEIGHT][WINDOW_WIDTH] = {0};
+int BACK_BOARD[WINDOW_HEIGHT][WINDOW_WIDTH] = {0};
+
+struct PairHash {
+  size_t operator()(const pair<int, int> &p) const {
+    return p.first ^ p.second;
+  }
+};
 constexpr int block_num =
     (WINDOW_HEIGHT * WINDOW_WIDTH) / ((RECT_SIZE + 2) * (RECT_SIZE + 2));
 vector<vector<SDL_Rect *>> sdl_rects;
@@ -71,6 +80,7 @@ void update_board_binary(const pair<int, int> &&coords,
   int x_row = 0;
   const vector<SDL_Rect *> &rows = sdl_rects[0];
   while (start_x < end_x) {
+		
     x_mid = (start_x + end_x) / 2;
     int x_0 = rows.at(x_mid)->x;
     int x_1 = x_0 + RECT_SIZE;
@@ -135,6 +145,31 @@ void move(SDL_Renderer *renderer, SDL_Rect &rect, RectColor &color) {
   SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
   SDL_RenderDrawRect(renderer, &rect);
   SDL_RenderPresent(renderer);
+}
+
+int emod(int a, int b) { return (((a % b) + b) % b); }
+
+int calculate_neighbors(int y, int x) {
+  int total_neighs = 0;
+  int dir[] = {-1, 0, 1};
+
+  for (int dirx : dir) {
+    for (int diry : dir) {
+      int new_x = emod(x + dirx, WINDOW_WIDTH);
+      int new_y = emod(y + diry, WINDOW_HEIGHT);
+        printf("Found a selected neighbor close to %d, %d : %d, %d \n", x, y,
+               new_x, new_y);
+        ++total_neighs;
+      }
+    }
+  }
+
+void calculate_next_gol() {
+  for (int y = 0; y < sdl_rects.size(); ++y) {
+    for (int x = 0; x < sdl_rects[y].size(); ++x) {
+      int neighbors = calculate_neighbors(y, x);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
